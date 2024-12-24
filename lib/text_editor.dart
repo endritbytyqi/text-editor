@@ -68,7 +68,7 @@ class TextEditor extends StatefulWidget {
     this.text = '',
     this.textStyle,
     this.textAlingment,
-    this.minFontSize = 1,
+    this.minFontSize = 50,
     this.maxFontSize = 100,
     this.onTextAlignChanged,
     this.onTextStyleChanged,
@@ -84,9 +84,12 @@ class _TextEditorState extends State<TextEditor> {
   late TextStyleModel _textStyleModel;
   late FontOptionModel _fontOptionModel;
   late Widget _doneButton;
+  late Widget _clearButton;
 
   @override
   void initState() {
+    _clearButton = widget.decoration?.clearButton ??
+        Text('Clear', style: TextStyle(color: Colors.white));
     _textStyleModel = TextStyleModel(
       widget.text,
       textStyle: widget.textStyle,
@@ -123,6 +126,12 @@ class _TextEditorState extends State<TextEditor> {
     );
   }
 
+  void _clearText() {
+    // Clear the text from the model
+    _textStyleModel.text = '';
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return TextEditorData(
@@ -135,7 +144,15 @@ class _TextEditorState extends State<TextEditor> {
           children: [
             Row(
               children: [
-                Expanded(child: Container()),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: GestureDetector(
+                      onTap: _clearText,
+                      child: _clearButton,
+                    ),
+                  ),
+                ),
                 Expanded(
                   flex: 3,
                   child: Row(
@@ -155,7 +172,7 @@ class _TextEditorState extends State<TextEditor> {
                       TextBackgroundColor(
                         enableWidget: widget.decoration?.textBackground?.enable,
                         disableWidget:
-                            widget.decoration?.textBackground?.disable,
+                        widget.decoration?.textBackground?.disable,
                       ),
                     ],
                   ),
@@ -172,31 +189,51 @@ class _TextEditorState extends State<TextEditor> {
               ],
             ),
             Expanded(
-              child: Row(
-                children: [
-                  FontSize(
-                    minFontSize: widget.minFontSize!,
-                    maxFontSize: widget.maxFontSize!,
-                  ),
-                  Expanded(
-                    child: Container(
-                      child: Center(
-                        child: TextField(
-                          controller: TextEditingController()
-                            ..text = _textStyleModel.text,
-                          onChanged: (value) => _textStyleModel.text = value,
-                          maxLines: null,
-                          keyboardType: TextInputType.multiline,
-                          style: _textStyleModel.textStyle,
-                          textAlign: _textStyleModel.textAlign!,
-                          autofocus: true,
-                          cursorColor: Colors.white,
-                          decoration: null,
-                        ),
+              child: Container(
+                child: Center(
+                  child: GestureDetector(
+                    onScaleUpdate: (details) {
+                      double scale = details.scale;
+
+                      // Prevent scale from going below 0.5
+                      if (scale < 0.5) {
+                        scale = 0.5;
+                      }
+
+                      // Get the current font size, if it's null use minFontSize
+                      double currentFontSize =
+                          _textStyleModel.textStyle?.fontSize ??
+                              widget.minFontSize!;
+
+                      // Apply scale factor to current font size
+                      double newFontSize = currentFontSize * scale;
+
+                      // Set a minimum font size of 15 and clamp the new font size between that and the maxFontSize
+                      newFontSize = newFontSize.clamp(15, widget.maxFontSize!);
+
+                      // Update the font size in the model
+                      _textStyleModel.editFontSize(newFontSize);
+
+                      print("Updated font size: $newFontSize");
+                      print("scale: $scale");
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.all(30),
+                      child: TextField(
+                        controller: TextEditingController()
+                          ..text = _textStyleModel.text,
+                        onChanged: (value) => _textStyleModel.text = value,
+                        maxLines: null,
+                        keyboardType: TextInputType.multiline,
+                        style: _textStyleModel.textStyle,
+                        textAlign: _textStyleModel.textAlign!,
+                        autofocus: true,
+                        cursorColor: Colors.white,
+                        decoration: null,
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
             ),
             Container(
@@ -247,6 +284,7 @@ class TextBackgroundDecoration {
 class EditorDecoration {
   /// Done button widget
   final Widget? doneButton;
+  final Widget? clearButton;
   final AlignmentDecoration? alignment;
 
   /// Text background widget
@@ -260,6 +298,7 @@ class EditorDecoration {
 
   EditorDecoration({
     this.doneButton,
+    this.clearButton,
     this.alignment,
     this.fontFamily,
     this.colorPalette,

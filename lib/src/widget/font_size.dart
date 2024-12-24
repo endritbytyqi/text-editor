@@ -10,16 +10,26 @@ class FontSize extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final model = TextEditorData.of(context).textStyleModel;
-    return RotatedBox(
-      quarterTurns: 3,
-      child: Slider(
-        value: model.textStyle?.fontSize ?? minFontSize,
-        min: minFontSize,
-        max: maxFontSize,
-        divisions: ((maxFontSize - minFontSize) * 10).toInt(),
-        activeColor: Colors.white,
-        inactiveColor: Colors.white,
-        onChanged: (double value) => model.editFontSize(value),
+
+    return GestureDetector(
+      onScaleUpdate: (details) {
+        double scale = details.scale;
+        double currentFontSize = model.textStyle?.fontSize ?? minFontSize;
+        double newFontSize = currentFontSize * scale;
+
+        // Clamp the new font size between minFontSize and maxFontSize
+        newFontSize = newFontSize.clamp(minFontSize, maxFontSize);
+
+        // Update the font size in the model
+        model.editFontSize(newFontSize);
+
+        // Debugging output
+        print("onScaleUpdate called, scale: $scale");
+        print("Updated font size: $newFontSize");
+      },
+      child: Container(
+        color:
+        Colors.transparent, // Ensure the GestureDetector captures the input
       ),
     );
   }
